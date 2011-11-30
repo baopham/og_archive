@@ -1,0 +1,61 @@
+<?php
+
+/**
+ * @file
+ * Install file to intall prerequisite database elements.
+ */
+
+/**
+ * Implementation of hook_schema
+ * @return unknown
+ */
+function og_archive_setflag() {
+  $flag = flag_flag::factory_by_content_type( 'node' );
+  // Absolutely required, will break your site if not added properties.
+  $flag->name = 'archive';
+  $flag->title = 'Archive';
+  // Properties required by the UI.
+  $flag->roles = array( 2 ); // An array of role IDs. 2 is for "authenticated users".
+  $flag->types = array( 'group' ); // An array of node types.
+  $flag->flag_short = 'Archive this group';
+  $flag->unflag_short = 'Unarchive this group';
+  $flag->global = TRUE;
+  $flag->flag_long = 'You may archive this group. If you archive this group you may only view its content but cannot add/delete or update.';
+  $flag->flag_message = 'You may archive this group. If you archive this group you may only view its content but cannot add/delete or update.';
+  $flag->unflag_long = 'You may unarchive this group. If you unarchive this group you can edit and delete the group.';
+  $flag->unflag_message = 'You may unarchive this group. If you unarchive this group you can edit and delete the group.';
+  $flag->show_on_form = TRUE;
+  $flag->show_on_node = TRUE;
+  $flag->show_on_teaser = TRUE;
+  $flag->link_type = 'toggle'; // For JS link. Other options: 'normal' and 'confirm'.
+  $flag->locked = array( 'show_on_teaser', 'name', 'types', 'global', 'roles' );
+  // Save the flag.
+  $flag->save();
+}
+
+/**
+ * Implementation of hook_install.
+ *
+ */
+
+function og_archive_install() {
+  $nodetypes = node_get_types();
+  if (! $nodetypes['group']) {
+    $info = array( 'type' => 'og', 'name' => 'group', 'module' => 'node', 'has_title' => 1, 'title_label' => 'Group name', 'has_body' => 1, 'body_label' => 'Welcome message', 'description' => 'A group provides a home page for like minded users. There they post articles about their shared interest.', 'help' => '', 'min_word_count' => 0, 'custom' => 1, 'modified' => 1, 'locked' => 0, 'orig_type' => 'og' );
+    node_type_save( ( object ) $info );
+    node_types_rebuild();
+  }
+  $defaults = array( 'roles_archive' => array( 2 ), 'archive_group_nodes' => 1, 'archive_associated_nodes' => 1, 'archive_associated_nodes_creation' => 1, 'archive_edit_users' => 1 );
+  variable_set( 'og_archive_settings', serialize( $defaults ) );
+  og_archive_setflag();
+}
+
+/**
+ * Implementation of hook_uninstall.
+ *
+ */
+
+function og_archive_uninstall() {
+  variable_del( 'og_archive_settings' );
+}
+

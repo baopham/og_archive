@@ -1,1 +1,10 @@
-name = OG Archive Groups
+name = "OG Archive"
+description = "Provides archiving and unarchiving of groups. Prefrences such as allow adding of users, creation of nodes, roles ect.. can be set in the Og archive settings page." 
+package = "Organic groups"
+project = "og_archive"
+core = 6.x
+version = 6.22
+
+dependencies[] = og
+dependencies[] = flag
+dependencies[] = content
