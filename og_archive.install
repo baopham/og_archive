@@ -15,7 +15,10 @@ function og_archive_setflag() {
   $flag->name = 'archive';
   $flag->title = 'Archive';
   // Properties required by the UI.
-  $flag->roles = array( 2 ); // An array of role IDs. 2 is for "authenticated users".
+  $flag->roles = array(
+    'flag' => array(DRUPAL_AUTHENTICATED_RID),
+    'unflag' => array(DRUPAL_AUTHENTICATED_RID),
+  );
   $flag->types = array( 'group' ); // An array of node types.
   $flag->flag_short = 'Archive this group';
   $flag->unflag_short = 'Unarchive this group';
@@ -37,11 +40,10 @@ function og_archive_setflag() {
  * Implementation of hook_install.
  *
  */
-
 function og_archive_install() {
   $nodetypes = node_get_types();
-  if (! $nodetypes['group']) {
-    $info = array( 'type' => 'og', 'name' => 'group', 'module' => 'node', 'has_title' => 1, 'title_label' => 'Group name', 'has_body' => 1, 'body_label' => 'Welcome message', 'description' => 'A group provides a home page for like minded users. There they post articles about their shared interest.', 'help' => '', 'min_word_count' => 0, 'custom' => 1, 'modified' => 1, 'locked' => 0, 'orig_type' => 'og' );
+  if (!isset($nodetypes['group'])) {
+    $info = array( 'type' => 'group', 'name' => 'Group', 'module' => 'node', 'has_title' => 1, 'title_label' => 'Group name', 'has_body' => 1, 'body_label' => 'Welcome message', 'description' => 'A group provides a home page for like minded users. There they post articles about their shared interest.', 'help' => '', 'min_word_count' => 0, 'custom' => 1, 'modified' => 1, 'locked' => 0, 'orig_type' => 'group' );
     node_type_save( ( object ) $info );
     node_types_rebuild();
   }
@@ -54,8 +56,10 @@ function og_archive_install() {
  * Implementation of hook_uninstall.
  *
  */
-
 function og_archive_uninstall() {
   variable_del( 'og_archive_settings' );
+  // Delete flag 'archive'
+  if (FALSE !== ($flag = flag_get_flag("archive")))
+    $flag->delete();
 }
 

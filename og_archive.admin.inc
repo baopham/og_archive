@@ -16,7 +16,7 @@ function og_archive_settings() {
   $form['roles_fieldset'] = array(
     '#type' => 'fieldset',
     '#title' => t('Archive/Unarchive Roles'),
-    '#discription' => t('Settings for roles who can archive and unarchive groups.'),
+    '#description' => t('Settings for roles who can archive and unarchive groups.'),
     '#collapsible' => FALSE
   );
   $form['roles_fieldset']['roles_archive'] = array(
@@ -24,7 +24,7 @@ function og_archive_settings() {
     '#title' => t('Roles who can archive and unarchive groups'),
     '#description' => t('Select the list of roles who can archive and unarchive groups. </br>Users with the selected roles will have full access to archived group nodes.'),
     '#options' => user_roles(TRUE),
-    '#default_value' => $flag->roles
+    '#default_value' => $flag->roles['flag']
   );
   $form['node_fieldset'] = array(
     '#type' => 'fieldset',
@@ -90,7 +90,7 @@ function og_archive_settings_submit($form, &$form_state) {
     og_archive_publishing( $archive_node, 'node' );
   }
   $flag = flag_get_flag( "archive" );
-  $flag->roles = $roles_archive;
+  $flag->roles['flag'] = $roles_archive;
   $flag->save();
   variable_set( 'og_archive_settings', serialize( $variable ) );
   drupal_set_message( "The configuration has been saved." );

@@ -40,7 +40,7 @@ function og_archive_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
         exit();
       }
       break;
-    case 'load' :
+    case 'alter' :
       if (og_archive_isarchived( $node->nid )) {
         og_archive_node_action( $node, $node->type );
       }
@@ -74,7 +74,7 @@ function og_archive_menu_access_node_edit($node) {
       drupal_set_message( "This group is archived! You dont have permission to edit!", "error" );
       return FALSE;
     }
-    if ($settings['node_associated_archive'] == 1 && $node->type != 'group') {
+    if ($settings['archive_associated_nodes'] == 1 && $node->type != 'group') {
       drupal_set_message( "This group is archived! You dont have permission to edit it!", "error" );
       return FALSE;
     }
@@ -87,29 +87,48 @@ function og_archive_menu_access_node_edit($node) {
  */
 function og_archive_form_alter(&$form, $form_state, $form_id) {
   if ($form['#id'] == 'node-form') {
-    $settings = og_archive_get_settings();
-    // Unset groups which are archived.
+    $form['#after_build'][] = '_og_archive_after_build';
+  }
+}
+
+/**
+ * Custom after_build callback handler for "Create content" form
+ * Remove archived groups from the OG's options field
+ */
+function _og_archive_after_build($form, &$form_state) {
+  $settings = og_archive_get_settings();
+  // Unset groups which are archived.
+  if (isset($form['og_nodeapi']['visible']['og_groups']['#options'])) {
     foreach ( $form['og_nodeapi']['visible']['og_groups']['#options'] as $k => $v ) {
-      /*if(!$settings['archive_associated_nodes_creation'] &&
-       og_archive_isarchived($k, '', FALSE) &&
-       !og_archive_unarchive_permission()){*/
-      if (! $settings['archive_associated_nodes_creation'] && og_archive_hide( $k )) {
-        unset( $form['og_nodeapi']['visible']['og_groups']['#options'][$k] );
+      if (is_numeric($k) && (! $settings['archive_associated_nodes_creation'] || og_archive_hide( $k ))) {
+        if (og_archive_isarchived($k, '', FALSE)) {
+          unset( $form['og_nodeapi']['visible']['og_groups']['#options'][$k] );
+          if ($form['og_nodeapi']['visible']['og_groups'][$k]['#attributes']['class'] == 'og-audience')
+            $form['og_nodeapi']['visible']['og_groups'][$k]['#access'] = FALSE;
+        }
+      } elseif (!is_numeric($k)) {
+        foreach ($v as $nid => $group_name) {
+          if (! $settings['archive_associated_nodes_creation'] || og_archive_hide( $nid )) {
+            if (og_archive_isarchived($nid, '', FALSE))
+              unset( $form['og_nodeapi']['visible']['og_groups']['#options'][$k][$nid] );
+          }
+        }
       }
     }
   }
+  return $form;
 }
 
 /**
  * Implementation of hook_og().
  */
 function og_archive_og($op, $gid, $uid, $args) {
-  global $user;
   switch ($op) {
     case "user insert" :
       $settings = og_archive_get_settings();
       if ($settings['archive_edit_users'] == 0 && og_archive_isarchived( $gid )) {
         og_delete_subscription( $gid, $uid );
+        drupal_set_message('You cannot join this group since it has been archived.', 'error');
       }
       break;
   }
@@ -133,15 +152,13 @@ function og_archive_isarchived($nid, $uid = '', $check_parent = TRUE) {
     return FALSE;
   if (! $check_parent)
     return ($flag->is_flagged( $nid )) ? TRUE : FALSE;
-  $nidlist = array( $nid );
   $countarchived = ($flag->is_flagged( $nid )) ? 1 : 0;
   $query = db_query( "SELECT oa.group_nid FROM {og_ancestry} oa inner join {node} n on n.nid=oa.group_nid where oa.nid=%d", $nid );
   while ( $row = db_fetch_object( $query ) ) {
-    $nidlist[] = $row->group_nid;
     if ($flag->is_flagged( $row->group_nid ))
       $countarchived ++;
   }
-  return (count( $nidlist ) == $countarchived) ? TRUE : FALSE;
+  return ($countarchived > 0) ? TRUE : FALSE;
 }
 
 /**
@@ -185,11 +202,11 @@ function og_archive_unarchive_permission() {
   return FALSE;
 }
 /**
- * og functions to get the serialized array of thesettings of og archive.
+ * og functions to get the serialized array of the settings of og archive.
  * @return $settings array().
  */
 function og_archive_get_settings() {
-  $serdata = variable_get( 'og_archive_settings' );
+  $serdata = variable_get( 'og_archive_settings', array() );
   $settings = unserialize( $serdata );
   return $settings;
 }
@@ -203,22 +220,24 @@ function og_archive_node_action(&$node, $type) {
     return TRUE;
   }
   $setting = og_archive_get_settings();
+  // Clear old messages
+  drupal_get_messages();
   // Deny access
   if ($setting['archive_group_nodes'] == 0 && $type == 'group') {
     drupal_set_message( "This group is archived! You dont have permission to view it!", "error" );
     $node = new stdClass( );
     $node->type = 'archived';
   }
-  if ($setting['node_associated_archive'] == 0 && $type != 'group') {
+  if ($setting['archive_associated_nodes'] == 0 && $type != 'group') {
     drupal_set_message( "The parent group of this node is archived! You dont have permission to archive/unarchive it!", "error" );
     $node = new stdClass( );
-    $node->nid = 'archived';
+    $node->type = 'archived';
   }
-  if ($setting['archive_group_nodes'] == 1) {
+  if ($setting['archive_group_nodes'] == 1 && $type == 'group') {
     drupal_set_message( "This group is archived! You have permission to view it!", "error" );
   }
-  if ($setting['node_associated_archive'] == 1) {
-    drupal_set_message( "The group this node belongs to is archived! You dont have permission view it!", "error" );
+  if ($setting['archive_associated_nodes'] == 1 && $type != 'group') {
+    drupal_set_message( "The group this node belongs to is archived! You have permission to view it!", "error" );
   }
   return TRUE;
 }
