@@ -6,11 +6,11 @@
  */
 
 /**
- * Implementation of hook_schema
- * @return unknown
+ * Create flag 'archive'
  */
 function og_archive_setflag() {
-  $flag = flag_flag::factory_by_content_type( 'node' );
+  $group_bundles = og_get_all_group_bundle();
+  $flag = flag_flag::factory_by_entity_type('node');
   // Absolutely required, will break your site if not added properties.
   $flag->name = 'archive';
   $flag->title = 'Archive';
@@ -19,7 +19,7 @@ function og_archive_setflag() {
     'flag' => array(DRUPAL_AUTHENTICATED_RID),
     'unflag' => array(DRUPAL_AUTHENTICATED_RID),
   );
-  $flag->types = array( 'group' ); // An array of node types.
+  $flag->types = array_keys($group_bundles['node']);
   $flag->flag_short = 'Archive this group';
   $flag->unflag_short = 'Unarchive this group';
   $flag->global = TRUE;
@@ -31,7 +31,7 @@ function og_archive_setflag() {
   $flag->show_on_node = TRUE;
   $flag->show_on_teaser = TRUE;
   $flag->link_type = 'toggle'; // For JS link. Other options: 'normal' and 'confirm'.
-  $flag->locked = array( 'show_on_teaser', 'name', 'types', 'global', 'roles' );
+  $flag->locked = array('show_on_teaser', 'name', 'types', 'global', 'roles');
   // Save the flag.
   $flag->save();
 }
@@ -41,14 +41,8 @@ function og_archive_setflag() {
  *
  */
 function og_archive_install() {
-  $nodetypes = node_get_types();
-  if (!isset($nodetypes['group'])) {
-    $info = array( 'type' => 'group', 'name' => 'Group', 'module' => 'node', 'has_title' => 1, 'title_label' => 'Group name', 'has_body' => 1, 'body_label' => 'Welcome message', 'description' => 'A group provides a home page for like minded users. There they post articles about their shared interest.', 'help' => '', 'min_word_count' => 0, 'custom' => 1, 'modified' => 1, 'locked' => 0, 'orig_type' => 'group' );
-    node_type_save( ( object ) $info );
-    node_types_rebuild();
-  }
-  $defaults = array( 'roles_archive' => array( 2 ), 'archive_group_nodes' => 1, 'archive_associated_nodes' => 1, 'archive_associated_nodes_creation' => 1, 'archive_edit_users' => 1 );
-  variable_set( 'og_archive_settings', serialize( $defaults ) );
+  $defaults = array('roles_archive' => array(2), 'archive_group_nodes' => 1, 'archive_associated_nodes' => 1, 'archive_associated_nodes_creation' => 1, 'archive_edit_users' => 1);
+  variable_set('og_archive_settings', $defaults);
   og_archive_setflag();
 }
 
@@ -57,7 +51,7 @@ function og_archive_install() {
  *
  */
 function og_archive_uninstall() {
-  variable_del( 'og_archive_settings' );
+  variable_del('og_archive_settings');
   // Delete flag 'archive'
   if (FALSE !== ($flag = flag_get_flag("archive")))
     $flag->delete();

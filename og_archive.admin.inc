@@ -10,8 +10,7 @@
  * @return $form
  */
 function og_archive_settings() {
-  $serialized_defaults = variable_get('og_archive_settings', serialize(array()));
-  $defaults = unserialize($serialized_defaults);
+  $defaults = variable_get('og_archive_settings', array());
   $flag = flag_get_flag("archive");
   $form['roles_fieldset'] = array(
     '#type' => 'fieldset',
@@ -33,7 +32,7 @@ function og_archive_settings() {
   );
   $form['node_fieldset']['node_readonly'] = array(
     '#type' => 'radios',
-    '#title' => t(' Group Access'),
+    '#title' => t('Group Access'),
     '#description' => t('Access type for an archived group. Archived groups are not editable by roles not having archiving permission.'),
     '#options' => array('Deny', 'Readonly', 'Unpublish'),
     '#default_value' => $defaults['archive_group_nodes']
@@ -54,7 +53,7 @@ function og_archive_settings() {
   );
   $form['node_fieldset']['node_editusers'] = array(
     '#type' => 'radios',
-    '#title' => t(' Manage Group Users'),
+    '#title' => t('Manage Group Users'),
     '#description' => t('Users can be added or removed to archived groups.'),
     '#default_value' => $defaults['archive_edit_users'],
     '#options' => array('Deny', 'Allow'),
@@ -72,47 +71,58 @@ function og_archive_settings() {
  */
 function og_archive_settings_submit($form, &$form_state) {
   $roles_archive = array();
-  foreach ( $form_state['values']['roles_archive'] as $k => $v ) {
+  foreach ($form_state['values']['roles_archive'] as $k => $v) {
     if ($v)
       $roles_archive[] = $v;
   }
-  $variable = array( 'roles_archive' => $roles_archive, 'archive_group_nodes' => $form_state['values']['node_readonly'], 'archive_associated_nodes' => $form_state['values']['node_associated_archive'], 'archive_associated_nodes_creation' => $form_state['values']['archive_associated_nodes_creation'], 'archive_edit_users' => $form_state['values']['node_editusers'] );
-  $setting = og_archive_get_settings();
+  $variable = array('roles_archive' => $roles_archive, 'archive_group_nodes' => $form_state['values']['node_readonly'], 'archive_associated_nodes' => $form_state['values']['node_associated_archive'], 'archive_associated_nodes_creation' => $form_state['values']['archive_associated_nodes_creation'], 'archive_edit_users' => $form_state['values']['node_editusers']);
+  $setting = variable_get('og_archive_settings', array());
   // If setting has changed.
   if ($setting['archive_group_nodes'] != $variable['archive_group_nodes']) {
-    // Publish unpublish groups.
+    // Publish unpublished groups.
     $archive_grp = ($form_state['values']['node_readonly'] == 2) ? 'unpublish' : 'publish';
-    og_archive_publishing( $archive_grp, 'group' );
+    og_archive_publishing($archive_grp, 'group');
   }
   if ($setting['archive_associated_nodes'] != $variable['archive_associated_nodes']) {
-    // Publish unpublish nodes.
+    // Publish unpublished nodes.
     $archive_node = ($form_state['values']['node_associated_archive'] == 2) ? 'unpublish' : 'publish';
-    og_archive_publishing( $archive_node, 'node' );
+    og_archive_publishing($archive_node, 'group content');
   }
-  $flag = flag_get_flag( "archive" );
+  $flag = flag_get_flag("archive");
   $flag->roles['flag'] = $roles_archive;
   $flag->save();
-  variable_set( 'og_archive_settings', serialize( $variable ) );
-  drupal_set_message( "The configuration has been saved." );
+  variable_set('og_archive_settings', $variable);
+  drupal_set_message(t("The configuration has been saved."));
 }
 
 /*
  * Publish and unpublish all nodes or groups
+ *
+ * @param $op
+ *   A string: 'publish' or 'unpublish'
+ * @param $type
+ *   A string: 'group' or 'group content'
  */
 function og_archive_publishing($op, $type) {
-  $query = db_query( "SELECT content_id from {flag_content} where fid=(SELECT fid FROM {flags} where name='archive' and content_type='node')" );
-  while ( $r = db_fetch_array( $query ) ) {
+  $query = db_select('flagging', 'fn');
+  $query->join('flag', 'f', "fn.fid = f.fid AND f.name = 'archive' AND f.entity_type = 'node'");
+  $query->fields('fn', array('entity_id'));
+  $result = $query->execute();
+
+  $count = 0;
+  foreach ($result as $record) {
     if ($type == 'group') {
-      //drupal_set_message($r['content_id']);
-      og_archive_pub_unpub( $op, $r['content_id'] );
+      $count += 1;
+      og_archive_pub_unpub($op, $record->entity_id);
     }
     else {
-      drupal_set_message( 'node changed and pub-unpub' );
-      $archive_list = og_archive_publish_list( $r['content_id'] );
-      //print_r($archive_list);exit;
-      foreach ( $archive_list as $k => $nid ) {
-        og_archive_pub_unpub( $op, $nid );
+      $archive_list = og_archive_publish_list($record->entity_id);
+      foreach ($archive_list as $k => $nid) {
+        $count += 1;
+        og_archive_pub_unpub($op, $nid);
       }
     }
   }
+  $op = ($op == 'publish') ? 'republish' : $op;
+  drupal_set_message(format_plural($count, ucwords($op) . " $count $type node", ucwords($op) . " @count $type nodes"));
 }
