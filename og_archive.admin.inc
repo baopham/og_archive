@@ -87,7 +87,7 @@ function og_archive_settings_submit($form, &$form_state) {
   if ($setting['archive_associated_nodes'] != $variable['archive_associated_nodes']) {
     // Publish unpublish nodes.
     $archive_node = ($form_state['values']['node_associated_archive'] == 2) ? 'unpublish' : 'publish';
-    og_archive_publishing( $archive_node, 'node' );
+    og_archive_publishing( $archive_node, 'group post' );
   }
   $flag = flag_get_flag( "archive" );
   $flag->roles['flag'] = $roles_archive;
@@ -101,18 +101,22 @@ function og_archive_settings_submit($form, &$form_state) {
  */
 function og_archive_publishing($op, $type) {
   $query = db_query( "SELECT content_id from {flag_content} where fid=(SELECT fid FROM {flags} where name='archive' and content_type='node')" );
+  $count = 0;
   while ( $r = db_fetch_array( $query ) ) {
     if ($type == 'group') {
+      $count += 1;
       //drupal_set_message($r['content_id']);
       og_archive_pub_unpub( $op, $r['content_id'] );
     }
     else {
-      drupal_set_message( 'node changed and pub-unpub' );
       $archive_list = og_archive_publish_list( $r['content_id'] );
       //print_r($archive_list);exit;
       foreach ( $archive_list as $k => $nid ) {
+        $count += 1;
         og_archive_pub_unpub( $op, $nid );
       }
     }
   }
+  $op = ($op == 'publish') ? 'republish' : $op;
+  drupal_set_message(format_plural($count, ucwords($op) . " $count $type node", ucwords($op) . " @count $type nodes"));
 }
