@@ -6,7 +6,7 @@
  */
 
 /**
- * Implementation of hook_schema
+ * Set up new flag 'archive'
  * @return unknown
  */
 function og_archive_setflag() {
