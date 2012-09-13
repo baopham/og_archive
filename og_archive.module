@@ -75,7 +75,7 @@ function og_archive_menu_access_node_edit($node) {
       return FALSE;
     }
     if ($settings['archive_associated_nodes'] == 1 && $node->type != 'group') {
-      drupal_set_message( "This group is archived! You dont have permission to edit it!", "error" );
+      drupal_set_message( "The group this node belongs to is archived! You dont have permission to edit it!", "error" );
       return FALSE;
     }
   }
