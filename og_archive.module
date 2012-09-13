@@ -269,8 +269,7 @@ function og_archive_publish_list($gid) {
  */
 function og_archive_pub_unpub($op, $nid) {
   $status = ($op == 'publish') ? 1 : 0;
-  db_update('node')
-    ->fields(array('status' => $status))
-    ->condition('nid', $nid, '=')
-    ->execute();
+  $node = node_load($nid);
+  $node->status = $status;
+  node_save($node);
 }
