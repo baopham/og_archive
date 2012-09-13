@@ -81,13 +81,17 @@ function og_archive_settings_submit($form, &$form_state) {
   // If setting has changed.
   if ($setting['archive_group_nodes'] != $variable['archive_group_nodes']) {
     // Publish unpublish groups.
-    $archive_grp = ($form_state['values']['node_readonly'] == 2) ? 'unpublish' : 'publish';
-    og_archive_publishing( $archive_grp, 'group' );
+    if ($variable['archive_group_nodes'] == 2)
+      og_archive_publishing( 'unpublish', 'group' );
+    elseif ($setting['archive_group_nodes'] == 2)
+      og_archive_publishing( 'publish', 'group' );
   }
   if ($setting['archive_associated_nodes'] != $variable['archive_associated_nodes']) {
     // Publish unpublish nodes.
-    $archive_node = ($form_state['values']['node_associated_archive'] == 2) ? 'unpublish' : 'publish';
-    og_archive_publishing( $archive_node, 'group post' );
+    if ($variable['archive_associated_nodes'] == 2)
+      og_archive_publishing( 'unpublish', 'group post' );
+    elseif ($setting['archive_associated_nodes'] == 2)
+      og_archive_publishing( 'publish', 'group post' );
   }
   $flag = flag_get_flag( "archive" );
   $flag->roles['flag'] = $roles_archive;
