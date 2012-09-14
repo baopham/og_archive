@@ -23,10 +23,10 @@ function og_archive_setflag() {
   $flag->flag_short = 'Archive this group';
   $flag->unflag_short = 'Unarchive this group';
   $flag->global = TRUE;
-  $flag->flag_long = 'You may archive this group. If you archive this group you may only view its content but cannot add/delete or update.';
-  $flag->flag_message = 'You may archive this group. If you archive this group you may only view its content but cannot add/delete or update.';
-  $flag->unflag_long = 'You may unarchive this group. If you unarchive this group you can edit and delete the group.';
-  $flag->unflag_message = 'You may unarchive this group. If you unarchive this group you can edit and delete the group.';
+  $flag->flag_long = 'When a group is archived, some users may only view its content but cannot add/delete/update or join the group.';
+  $flag->flag_message = 'The group is now archived. Some users may only view its content but cannot add/delete/update or join the group.';
+  $flag->unflag_long = 'When a group is unarchived, authenticated users may edit or delete its content, and new members can join the group.';
+  $flag->unflag_message = 'The group is now unarchived. Authenticated users may edit or delete group content, and new members can join the group.';
   $flag->show_on_form = TRUE;
   $flag->show_on_node = TRUE;
   $flag->show_on_teaser = TRUE;
