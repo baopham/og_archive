@@ -77,7 +77,19 @@ function og_archive_form_alter(&$form, &$form_state, $form_id) {
       if (is_numeric($key) && og_archive_hide($key))
         unset($form[OG_AUDIENCE_FIELD]['und']['#options'][$key]);
     }
+  } elseif ($form_id == 'flag_form' && $form['name']['#default_value'] == 'archive') {
+    $form['#submit'][] = '_og_archive_flag_form_submit';
   }
+}
+
+/**
+ * Update og_archive settings with the new submitted flag's roles
+ */
+function _og_archive_flag_form_submit($form, &$form_state) {
+  $flag = flag_get_flag('archive');
+  $settings = variable_get('og_archive_settings', array());
+  $settings['roles_archive'] = $flag->roles['flag'];
+  variable_set('og_archive_settings', $settings);
 }
 
 /**

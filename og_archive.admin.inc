@@ -11,7 +11,6 @@
  */
 function og_archive_settings() {
   $defaults = variable_get('og_archive_settings', array());
-  $flag = flag_get_flag("archive");
   $form['roles_fieldset'] = array(
     '#type' => 'fieldset',
     '#title' => t('Archive/Unarchive Roles'),
@@ -23,7 +22,7 @@ function og_archive_settings() {
     '#title' => t('Roles who can archive and unarchive groups'),
     '#description' => t('Select the list of roles who can archive and unarchive groups. </br>Users with the selected roles will have full access to archived group nodes.'),
     '#options' => user_roles(TRUE),
-    '#default_value' => $flag->roles['flag']
+    '#default_value' => $defaults['roles_archive']
   );
   $form['node_fieldset'] = array(
     '#type' => 'fieldset',
@@ -70,11 +69,7 @@ function og_archive_settings() {
  * Submit function for OG archive settings form.
  */
 function og_archive_settings_submit($form, &$form_state) {
-  $roles_archive = array();
-  foreach ($form_state['values']['roles_archive'] as $k => $v) {
-    if ($v)
-      $roles_archive[] = $v;
-  }
+  $roles_archive = array_values($form['roles_fieldset']['roles_archive']['#value']);
   $variable = array('roles_archive' => $roles_archive, 'archive_group_nodes' => $form_state['values']['node_readonly'], 'archive_associated_nodes' => $form_state['values']['node_associated_archive'], 'archive_associated_nodes_creation' => $form_state['values']['archive_associated_nodes_creation'], 'archive_edit_users' => $form_state['values']['node_editusers']);
   $setting = variable_get('og_archive_settings', array());
   // If setting has changed.
