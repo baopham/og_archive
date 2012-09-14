@@ -88,6 +88,8 @@ function og_archive_menu_access_node_edit($node) {
 function og_archive_form_alter(&$form, $form_state, $form_id) {
   if ($form['#id'] == 'node-form') {
     $form['#after_build'][] = '_og_archive_after_build';
+  } elseif ($form_id == 'flag_form' && $form['name']['#default_value'] == 'archive') {
+    $form['#submit'][] = '_og_archive_flag_form_submit';
   }
 }
 
@@ -117,6 +119,16 @@ function _og_archive_after_build($form, &$form_state) {
     }
   }
   return $form;
+}
+
+/**
+ * Update og_archive settings with the new submitted flag's roles
+ */
+function _og_archive_flag_form_submit($form, &$form_state) {
+  $flag = flag_get_flag('archive');
+  $settings = og_archive_get_settings();
+  $settings['roles_archive'] = $flag->roles['flag'];
+  variable_set('og_archive_settings', serialize($settings));
 }
 
 /**
