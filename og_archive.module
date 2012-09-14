@@ -63,21 +63,10 @@ function og_archive_menu_access_node_edit($node) {
   $access = og_menu_access_node_edit( $node );
   if (! $access)
     return FALSE;
-    // OG check archive status.
+  // OG check archive status.
   if (og_archive_isarchived( $node->nid )) {
-    if (og_archive_unarchive_permission()) {
-      drupal_set_message( "This node is archived! and you have permission to archive/unarchive it!", "error" );
-      return TRUE;
-    }
-    $settings = og_archive_get_settings();
-    if ($settings['archive_group_nodes'] == 1 && $node->type == 'group') {
-      drupal_set_message( "This group is archived! You dont have permission to edit!", "error" );
-      return FALSE;
-    }
-    if ($settings['archive_associated_nodes'] == 1 && $node->type != 'group') {
-      drupal_set_message( "The group this node belongs to is archived! You dont have permission to edit it!", "error" );
-      return FALSE;
-    }
+    if (og_archive_unarchive_permission()) return TRUE;
+    else return FALSE;
   }
   return TRUE;
 }
