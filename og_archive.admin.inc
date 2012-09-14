@@ -94,6 +94,7 @@ function og_archive_settings_submit($form, &$form_state) {
   }
   $flag = flag_get_flag("archive");
   $flag->roles['flag'] = $roles_archive;
+  $flag->roles['unflag'] = $roles_archive;
   $flag->save();
   variable_set('og_archive_settings', $variable);
   drupal_set_message(t("The configuration has been saved."));
