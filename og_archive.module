@@ -38,10 +38,9 @@ function og_archive_menu() {
  * Implements hook_node_view()
  */
 function og_archive_node_view($node, $view_mode, $langcode) {
-  // @todo: what about teaser?
-  if ($view_mode == 'full') {
+  if ($view_mode == 'teaser') {
     if (og_archive_isarchived($node->nid)) {
-      og_archive_node_action($node, $node->type);
+      og_archive_node_action($node, $view_mode);
     }
   }
 }
@@ -50,11 +49,11 @@ function og_archive_node_view($node, $view_mode, $langcode) {
  * Implements hook_node_access()
  */
 function og_archive_node_access($node, $op, $account) {
-  if (is_object($node) && !og_archive_isarchived($node->nid)) return NODE_ACCESS_IGNORE;
-
-  if (og_archive_unarchive_permission()) return NODE_ACCESS_IGNORE;
+  if (is_object($node) && !og_archive_hide($node->nid)) return NODE_ACCESS_IGNORE;
 
   switch ($op) {
+    case 'view':
+      return og_archive_node_action($node, 'full');
     case 'delete':
     case 'update':
       $settings = variable_get('og_archive_settings', array());
@@ -193,30 +192,46 @@ function og_archive_unarchive_permission() {
 }
 
 /**
- * Predifined action for archived og groups.
+ * Predifined action for archived og group content.
+ * If the view mode is full, deny access if necessary then display drupal message.
+ * If the view mode is teaser, hide all content and display the error message in the teaser if necessary. 
+ *
+ * @param $node
+ *   A node object
+ * @param $view_mode
+ *   Node's view mode: full or teaser
+ * 
+ * @return
+ *   NODE_ACCESS_IGNORE or NODE_ACCESS_DENY
  */
-function og_archive_node_action($node, $type) {
+function og_archive_node_action($node, $view_mode) {
   if (og_archive_unarchive_permission()) {
-    drupal_set_message(t("This node is archived! and you have permission to archive/unarchive it!"), "error");
-    return TRUE;
+    if ($view_mode == 'full') drupal_set_message(t("This node is archived! and you have permission to archive/unarchive it!"), "error");
+    return NODE_ACCESS_IGNORE;
   }
   $settings = variable_get('og_archive_settings', array());
   // Deny access
-  if ($settings['archive_group_nodes'] == 0 && og_is_group_type('node', $type)) {
-    drupal_set_message(t("This group is archived! You dont have permission to view it!"), "error");
-    drupal_access_denied();
+  if ($settings['archive_group_nodes'] == 0 && og_is_group_type('node', $node->type)) {
+    $msg = t("This group is archived! You don't have permission to view it!");
+    if ($view_mode == 'full') drupal_set_message($msg, "error");
+    else $node->content['body'] = array('#markup' => '<div class="messages error">' . $msg . '</div>');
+    return NODE_ACCESS_DENY;
   }
-  if ($settings['archive_associated_nodes'] == 0 && og_is_group_content_type('node', $type)) {
-    drupal_set_message(t("The parent group of this node is archived! You dont have permission to archive/unarchive it!"), "error");
-    drupal_access_denied();
+  if ($settings['archive_associated_nodes'] == 0 && og_is_group_content_type('node', $node->type)) {
+    $msg = t("The parent group of this node is archived! You don't have permission to archive/unarchive it!");
+    if ($view_mode == 'full') drupal_set_message($msg, "error");
+    else $node->content['body'] = array('#markup' => '<div class="messages error">' . $msg . '</div>');
+    return NODE_ACCESS_DENY;
   }
-  if ($settings['archive_group_nodes'] == 1 && og_is_group_type('node', $type)) {
-    drupal_set_message(t("This group is archived! You have permission to view it!"), "error");
+  if ($settings['archive_group_nodes'] == 1 && og_is_group_type('node', $node->type)) {
+    if ($view_mode == 'full') drupal_set_message(t("This group is archived! You have permission to view it!"), "error");
+    return NODE_ACCESS_IGNORE;
   }
-  if ($settings['archive_associated_nodes'] == 1 && og_is_group_content_type('node', $type)) {
-    drupal_set_message(t("The group this node belongs to is archived! You have permission to view it!"), "error");
+  if ($settings['archive_associated_nodes'] == 1 && og_is_group_content_type('node', $node->type)) {
+    if ($view_mode == 'full') drupal_set_message(t("The group this node belongs to is archived! You have permission to view it!"), "error");
+    return NODE_ACCESS_IGNORE;
   }
-  return TRUE;
+  return NODE_ACCESS_IGNORE;
 }
 
 /*
